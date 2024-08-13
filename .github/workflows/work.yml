@@ -21,7 +21,7 @@ jobs:
           aws-region: ${{ vars.REGION }}
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v3 
 
       - name: Install helm
         uses: azure/setup-helm@v4.2.0 
