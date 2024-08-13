@@ -45,7 +45,7 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --region ${{ vars.REGION }} --name ${{ vars.CLUSTER_NAME }}
+          aws eks update-kubeconfig --region ${{ vars.REGION }} --name sock-shop
 
       - name: Deploy application
         run: kubectl apply -f deployment.yml
