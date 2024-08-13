@@ -71,12 +71,11 @@ jobs:
 
       - name: Deploy Prometheus and grafana
         run: |
-          kubectl apply -f ./manifest-monitoring
+          kubectl apply -f ./manifest-monitoring\ 
 
-      
       - name: Deploy alert manager
         run: |
-          kubectl apply -f ./manifest-alerts
+          kubectl apply -f ./manifest-alerts\ 
 
       - name: Deploy Nginx Ingress Controller
         run: |
