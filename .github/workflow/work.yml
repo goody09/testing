@@ -1,0 +1,79 @@
+name: Hardcoded CI/CD Workflow
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Install helm
+        uses: azure/setup-helm@v4.2.0 
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Create S3 bucket
+        run: |
+           if aws s3api head-bucket --bucket "terraform-bucket" >/dev/null 2>&1; then
+              echo "Bucket already exists, skipping creation."
+            else
+              echo "Bucket does not exist, creating it."
+              aws s3 mb s3://"terraform-bucket"
+            fi
+
+      - name: Deploy Terraform
+        run: |
+          terraform -chdir=terraform/ init
+          terraform -chdir=terraform/ apply --auto-approve
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ vars.REGION }} --name ${{ vars.CLUSTER_NAME }}
+
+      - name: Deploy application
+        run: kubectl apply -f deployment.yml
+
+      - name: Deploy Let's Encrypt
+        run: |
+          helm repo add jetstack https://charts.jetstack.io --force-update
+          helm repo update jetstack
+          helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.15.2 --set crds.enabled=true
+          kubectl apply -f cert.yaml
+
+      - name: Deploy Prometheus and grafana
+        run: |
+          kubectl apply -f manifest-monitoring
+
+      
+      - name: Deploy alert manager
+        run: |
+          kubectl apply -f manifest-alerts
+
+      - name: Deploy Nginx Ingress Controller
+        run: |
+          helm repo add nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update nginx
+          helm upgrade --install nginx nginx/ingress-nginx --namespace sock-shop --wait
+
+      - name: Delay Controller to stabilize
+        run: sleep 60s
+
+      - name: Deploy Ingress Resources
+        run: kubectl apply -f ingress.yml
