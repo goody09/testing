@@ -75,7 +75,7 @@ jobs:
 
       - name: Deploy alert manager
         run: |
-          kubectl apply -f ./manifest-alerts\ 
+          kubectl apply -f ./manifest-alert/
 
       - name: Deploy Nginx Ingress Controller
         run: |
@@ -83,8 +83,8 @@ jobs:
           helm repo update nginx
           helm upgrade --install nginx nginx/ingress-nginx --namespace sock-shop --wait
 
-      - name: Delay Controller to stabilize
-        run: sleep 60s
+      - name: Delay
+        run: sleep 120s
 
       - name: Deploy Ingress Resources
         run: kubectl apply -f ingress.yml
